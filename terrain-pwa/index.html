@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f6b69" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FI Connect Terrain" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="format-detection" content="telephone=no,email=no" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="icon" type="image/png" href="./icon-192.png" />
+    <title>FI Connect Terrain iPhone</title>
+  </head>
+  <body>
+    <div id="app">
+      <header class="hero panel">
+        <div class="hero__top">
+          <div class="hero__brand">
+            <img id="heroLogo" class="hero__logo" src="./fiche_intervention_logo.png" alt="Logo société" />
+            <div>
+              <span class="eyebrow">Terrain iPhone sans Mac</span>
+              <h1>Fiche d’intervention</h1>
+              <p class="hero__subtitle">Compatible avec les réceptions Android central et démo.</p>
+            </div>
+          </div>
+          <div class="hero__status">
+            <span id="syncStatusBadge" class="status-badge">Synchronisation active</span>
+            <span id="pendingBadge" class="pending-badge">0 en attente</span>
+          </div>
+        </div>
+        <div class="hero__body">
+          <div class="contact-block" id="companyContactBlock"></div>
+          <div class="hero__notes">
+            <p class="install-note" id="installSummaryText">Sur iPhone: Safari → Partager → Ajouter à l’écran d’accueil → Ouvrir comme app.</p>
+            <span class="secondary-kpi" id="appModeBadge">Mode navigateur</span>
+          </div>
+        </div>
+      </header>
+
+      <section id="installGuidePanel" class="panel install-panel hidden">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Installation iPhone</span>
+            <h2 id="installGuideTitle">Installer FI Connect Terrain</h2>
+          </div>
+          <button id="dismissInstallGuideButton" class="ghost-button" type="button">Masquer</button>
+        </div>
+        <p id="installGuideText" class="install-panel__text">
+          Ouvrez cette page dans Safari, puis ajoutez-la à l’écran d’accueil pour l’utiliser comme une vraie app.
+        </p>
+        <div class="install-panel__steps" id="installStepsList">
+          <div class="install-step"><strong>1.</strong><span>Ouvrir dans Safari.</span></div>
+          <div class="install-step"><strong>2.</strong><span>Partager.</span></div>
+          <div class="install-step"><strong>3.</strong><span>Ajouter à l’écran d’accueil.</span></div>
+          <div class="install-step"><strong>4.</strong><span>Ouvrir comme app.</span></div>
+        </div>
+        <div class="action-grid action-grid--compact">
+          <button id="copyAppLinkButton" class="secondary-button" type="button">Copier le lien</button>
+          <button id="forceSyncButton" class="primary-button" type="button">Relancer la synchro</button>
+        </div>
+      </section>
+
+      <main class="layout">
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Personnalisation</span>
+              <h2>Société</h2>
+            </div>
+            <button id="toggleCompanyButton" class="ghost-button" type="button">Configurer</button>
+          </div>
+          <div id="companySummary" class="summary-card"></div>
+          <div id="companyPanel" class="settings-grid hidden">
+            <label class="field">
+              <span>Nom société</span>
+              <input id="companyName" type="text" />
+            </label>
+            <label class="field field--wide">
+              <span>Adresse</span>
+              <textarea id="companyAddress" rows="2"></textarea>
+            </label>
+            <label class="field">
+              <span>Téléphone</span>
+              <input id="companyPhone" type="text" />
+            </label>
+            <label class="field">
+              <span>Email</span>
+              <input id="companyEmail" type="email" />
+            </label>
+            <label class="field field--wide">
+              <span>Logo</span>
+              <input id="companyLogoInput" type="file" accept="image/*" />
+            </label>
+            <div class="company-actions field--wide">
+              <button id="saveCompanyButton" class="primary-button" type="button">Enregistrer la société</button>
+              <button id="resetLogoButton" class="secondary-button" type="button">Logo par défaut</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Formulaire</span>
+              <h2>Informations générales</h2>
+            </div>
+          </div>
+          <div class="grid-two">
+            <label class="field">
+              <span>N° de fiche</span>
+              <div class="inline-field">
+                <input id="ficheNumber" type="text" />
+                <button id="autoNumberButton" class="chip-button" type="button">Auto</button>
+              </div>
+            </label>
+            <label class="field">
+              <span>Date d’intervention</span>
+              <div class="inline-field">
+                <input id="interventionDate" type="text" placeholder="jj/mm/aaaa" />
+                <button id="todayButton" class="chip-button" type="button">Ajd.</button>
+              </div>
+            </label>
+            <label class="field field--wide">
+              <span>Laboratoire / client</span>
+              <input id="laboratoryName" type="text" />
+            </label>
+            <label class="field">
+              <span>Localité</span>
+              <input id="locality" type="text" />
+            </label>
+            <label class="field">
+              <span>NS / Numéro de série</span>
+              <input id="serialNumber" type="text" />
+            </label>
+            <label class="field">
+              <span>Intervenant</span>
+              <input id="intervenant" type="text" />
+            </label>
+            <label class="field">
+              <span>Temps intervention</span>
+              <input id="interventionTime" type="text" />
+            </label>
+            <label class="field">
+              <span>Temps déplacement</span>
+              <input id="travelTime" type="text" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Diagnostic</span>
+              <h2>Description du problème</h2>
+            </div>
+          </div>
+          <label class="field">
+            <textarea id="description" rows="5"></textarea>
+          </label>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Intervention</span>
+              <h2>Travail effectué</h2>
+            </div>
+          </div>
+          <div id="workLines" class="stack-lines"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Pièces</span>
+              <h2>Références / articles</h2>
+            </div>
+            <label class="mini-select">
+              <span>Nb</span>
+              <select id="referenceCount"></select>
+            </label>
+          </div>
+          <div id="referenceLines" class="reference-list"></div>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Clôture</span>
+              <h2>Observation</h2>
+            </div>
+          </div>
+          <label class="field">
+            <textarea id="observation" rows="3"></textarea>
+          </label>
+        </section>
+
+        <section class="panel">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Transmission</span>
+              <h2>Actions</h2>
+            </div>
+          </div>
+          <div class="action-grid">
+            <button id="saveDraftButton" class="secondary-button" type="button">Enregistrer</button>
+            <button id="newDraftButton" class="ghost-button" type="button">Nouvelle fiche</button>
+            <button id="exportPdfButton" class="primary-button" type="button">Exporter PDF</button>
+            <button id="sharePdfButton" class="secondary-button" type="button">Partager PDF</button>
+            <button id="capturePhotoButton" class="primary-button" type="button">Capturer la fiche</button>
+            <button id="testLinkButton" class="ghost-button" type="button">Tester la liaison</button>
+          </div>
+          <input id="photoCaptureInput" type="file" accept="image/*" capture="environment" hidden />
+          <div class="status-panel">
+            <div>
+              <strong>État</strong>
+              <p id="syncStatusText">Synchronisation active</p>
+            </div>
+            <div>
+              <strong>Client terrain</strong>
+              <p id="terrainClientIdText">-</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel panel--documents">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">Documents</span>
+              <h2>Dernières pièces générées</h2>
+            </div>
+            <button id="clearDocumentsButton" class="ghost-button" type="button">Nettoyer</button>
+          </div>
+          <div id="documentSummary" class="summary-card"></div>
+          <div id="generatedDocuments" class="document-list"></div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="./src/main.js"></script>
+  </body>
+  </html>
