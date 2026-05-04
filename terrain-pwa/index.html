@@ -191,7 +191,25 @@
             </label>
           </div>
 
+          <div class="catalog-card">
+            <div class="catalog-card__head">
+              <div>
+                <span class="catalog-card__label">Base pièces SQLite</span>
+                <p id="catalogSummary" class="catalog-card__summary">Aucune base importée pour le moment.</p>
+              </div>
+              <div class="catalog-card__actions">
+                <button id="importCatalogButton" class="secondary-button secondary-button--compact" type="button">Importer SQLite</button>
+                <button id="clearCatalogButton" class="ghost-button ghost-button--compact" type="button">Réinitialiser</button>
+              </div>
+            </div>
+            <p class="catalog-card__note">
+              La saisie libre reste autorisée. Tu peux donc choisir une pièce depuis la base ou saisir une pièce hors base comme sur l’APK.
+            </p>
+          </div>
+
           <div id="referenceLines" class="reference-list"></div>
+          <input id="catalogFileInput" type="file" accept=".sqlite,.db,.sqlite3,.db3" hidden />
+          <datalist id="catalogReferenceOptions"></datalist>
         </section>
 
         <section class="panel">

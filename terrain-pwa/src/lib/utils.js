@@ -21,7 +21,8 @@ export function createDefaultDraft() {
     references: Array.from({ length: DEFAULT_REFERENCE_LINES }, () => ({
       reference: '',
       designation: '',
-      quantity: 1
+      quantity: 1,
+      source: 'manual'
     })),
     referenceCount: 0,
     observation: 'Rien à Signaler'
@@ -48,7 +49,8 @@ export function normalizeDraft(rawDraft = {}) {
     return {
       reference: String(line.reference || '').trim(),
       designation: String(line.designation || '').trim(),
-      quantity: clampNumber(line.quantity, 1, 99)
+      quantity: clampNumber(line.quantity, 1, 99),
+      source: String(line.source || 'manual').trim() || 'manual'
     };
   });
 

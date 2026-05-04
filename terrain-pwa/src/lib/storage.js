@@ -1,7 +1,7 @@
 import { openDB } from 'idb';
 
 const DB_NAME = 'bioplus-terrain-pwa';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const dbPromise = openDB(DB_NAME, DB_VERSION, {
   upgrade(db) {
@@ -10,6 +10,9 @@ const dbPromise = openDB(DB_NAME, DB_VERSION, {
     }
     if (!db.objectStoreNames.contains('documents')) {
       db.createObjectStore('documents', { keyPath: 'id' });
+    }
+    if (!db.objectStoreNames.contains('catalog')) {
+      db.createObjectStore('catalog', { keyPath: 'id' });
     }
   }
 });
@@ -65,4 +68,22 @@ export async function removeGeneratedDocument(id) {
 export async function clearGeneratedDocuments() {
   const db = await dbPromise;
   await db.clear('documents');
+}
+
+export async function saveArticleCatalog(catalog) {
+  const db = await dbPromise;
+  await db.put('catalog', {
+    id: 'active',
+    ...catalog
+  });
+}
+
+export async function getArticleCatalog() {
+  const db = await dbPromise;
+  return db.get('catalog', 'active');
+}
+
+export async function clearArticleCatalog() {
+  const db = await dbPromise;
+  await db.delete('catalog', 'active');
 }

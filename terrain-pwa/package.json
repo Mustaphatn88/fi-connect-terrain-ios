@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "idb": "^8.0.2",
-    "jspdf": "^4.2.1"
+    "jspdf": "^4.2.1",
+    "sql.js": "^1.14.1"
   },
   "devDependencies": {
     "vite": "^7.1.3"

@@ -5,12 +5,16 @@ import {
   SETTINGS_STORAGE_KEY
 } from './lib/constants.js';
 import {
+  clearArticleCatalog,
+  getArticleCatalog,
   clearGeneratedDocuments,
   getGeneratedDocuments,
+  saveArticleCatalog,
   saveGeneratedDocument
 } from './lib/storage.js';
 import { generateInterventionPdf } from './lib/pdf.js';
 import { RelayUploader } from './lib/relay.js';
+import { importCatalogFromSqlite } from './lib/catalog.js';
 import {
   blobToDataUrl,
   buildFallbackText,
@@ -37,6 +41,7 @@ const state = {
   settings: normalizeSettings(readJsonStorage(SETTINGS_STORAGE_KEY, {})),
   draft: normalizeDraft(readJsonStorage(DRAFT_STORAGE_KEY, createDefaultDraft())),
   documents: [],
+  catalog: createEmptyCatalog(),
   syncStatus: 'Synchronisation active.',
   pendingCount: 0,
   companyPanelOpen: false,
@@ -44,6 +49,10 @@ const state = {
 };
 
 const elements = {};
+const catalogIndex = {
+  byReference: new Map(),
+  byDesignation: new Map()
+};
 
 const uploader = new RelayUploader({
   onStatusChange: (text) => {
@@ -63,9 +72,11 @@ init().catch((error) => {
 
 async function init() {
   cacheDom();
+  await hydrateCatalog();
   wireEvents();
   renderForm();
   renderCompany();
+  renderCatalog();
   renderInstallGuide();
   await refreshDocuments();
   renderSyncState();
@@ -101,6 +112,11 @@ function cacheDom() {
     companyLogoInput: document.querySelector('#companyLogoInput'),
     saveCompanyButton: document.querySelector('#saveCompanyButton'),
     resetLogoButton: document.querySelector('#resetLogoButton'),
+    catalogSummary: document.querySelector('#catalogSummary'),
+    importCatalogButton: document.querySelector('#importCatalogButton'),
+    clearCatalogButton: document.querySelector('#clearCatalogButton'),
+    catalogFileInput: document.querySelector('#catalogFileInput'),
+    catalogReferenceOptions: document.querySelector('#catalogReferenceOptions'),
     referenceCountValueLabel: document.querySelector('#referenceCountValueLabel'),
     ficheNumber: document.querySelector('#ficheNumber'),
     interventionDate: document.querySelector('#interventionDate'),
@@ -225,7 +241,48 @@ function wireEvents() {
   elements.referenceCount.addEventListener('change', () => {
     state.draft.referenceCount = Number(elements.referenceCount.value);
     persistDraft();
+    renderReferenceCounter();
     renderReferenceLines();
+  });
+
+  elements.importCatalogButton.addEventListener('click', () => {
+    elements.catalogFileInput.click();
+  });
+
+  elements.catalogFileInput.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+
+    try {
+      const importedCatalog = await importCatalogFromSqlite(file);
+      state.catalog = importedCatalog;
+      rebuildCatalogIndex();
+      await saveArticleCatalog(importedCatalog);
+      renderCatalog();
+      renderReferenceLines();
+      showToast(`Base importée: ${importedCatalog.articleCount} article(s) depuis ${file.name}.`);
+    } catch (error) {
+      console.error(error);
+      showToast(`Import SQLite impossible: ${error.message || error}`);
+    } finally {
+      elements.catalogFileInput.value = '';
+    }
+  });
+
+  elements.clearCatalogButton.addEventListener('click', async () => {
+    await clearArticleCatalog();
+    state.catalog = createEmptyCatalog();
+    rebuildCatalogIndex();
+    state.draft.references = state.draft.references.map((line) => ({
+      ...line,
+      source: 'manual'
+    }));
+    persistDraft();
+    renderCatalog();
+    renderReferenceLines();
+    showToast('Base pièces réinitialisée.');
   });
 
   elements.saveDraftButton.addEventListener('click', () => {
@@ -448,6 +505,24 @@ function renderReferenceCounter() {
     : 'Aucune pièce';
 }
 
+function renderCatalog() {
+  const hasCatalog = state.catalog.articleCount > 0;
+  elements.catalogSummary.textContent = hasCatalog
+    ? `${state.catalog.articleCount} article(s) • table ${state.catalog.tableName} • ${state.catalog.fileName}`
+    : 'Aucune base importée pour le moment.';
+  renderCatalogOptions();
+}
+
+function renderCatalogOptions() {
+  elements.catalogReferenceOptions.innerHTML = '';
+  state.catalog.articles.slice(0, 800).forEach((article) => {
+    const option = document.createElement('option');
+    option.value = article.reference;
+    option.label = article.designation;
+    elements.catalogReferenceOptions.appendChild(option);
+  });
+}
+
 function renderReferenceLines() {
   elements.referenceLines.innerHTML = '';
   if (!state.draft.referenceCount) {
@@ -462,20 +537,26 @@ function renderReferenceLines() {
     card.innerHTML = `
       <div class="reference-card__head">
         <strong>Pièce ${index + 1}</strong>
-        <span class="doc-chip">Qté ${line.quantity}</span>
+        <div class="hero-card__badges">
+          <span class="doc-kind">${line.source === 'catalog' ? 'BASE' : 'LIBRE'}</span>
+          <span class="doc-chip">Qté ${line.quantity}</span>
+        </div>
       </div>
       <label class="field">
         <span>Référence</span>
-        <input type="text" data-reference-index="${index}" data-key="reference" />
+        <input type="text" data-reference-index="${index}" data-key="reference" list="catalogReferenceOptions" placeholder="Référence (base ou saisie libre)" />
       </label>
       <label class="field">
         <span>Désignation</span>
-        <input type="text" data-reference-index="${index}" data-key="designation" />
+        <input type="text" data-reference-index="${index}" data-key="designation" placeholder="Désignation" />
       </label>
       <label class="field">
         <span>Quantité</span>
         <input type="number" min="1" max="99" data-reference-index="${index}" data-key="quantity" />
       </label>
+      <p class="document-card__meta">${line.source === 'catalog'
+        ? 'Pièce issue de la base importée.'
+        : 'Saisie libre autorisée pour une pièce hors base.'}</p>
     `;
     card.querySelector('[data-key="reference"]').value = line.reference;
     card.querySelector('[data-key="designation"]').value = line.designation;
@@ -484,8 +565,16 @@ function renderReferenceLines() {
       input.addEventListener('input', () => {
         const key = input.dataset.key;
         state.draft.references[index][key] = key === 'quantity' ? Number(input.value || 1) : input.value;
+        if (key !== 'quantity' && state.draft.references[index].source === 'catalog') {
+          state.draft.references[index].source = 'manual';
+        }
         persistDraft();
       });
+      if (input.dataset.key === 'reference' || input.dataset.key === 'designation') {
+        input.addEventListener('change', () => {
+          tryApplyCatalogMatch(index, input.dataset.key, input.value);
+        });
+      }
     });
     elements.referenceLines.appendChild(card);
   }
@@ -646,6 +735,79 @@ function labelForKind(kind) {
     default:
       return 'FICHIER';
   }
+}
+
+async function hydrateCatalog() {
+  const storedCatalog = await getArticleCatalog();
+  state.catalog = storedCatalog?.articles?.length
+    ? {
+        ...createEmptyCatalog(),
+        ...storedCatalog
+      }
+    : createEmptyCatalog();
+  rebuildCatalogIndex();
+}
+
+function rebuildCatalogIndex() {
+  catalogIndex.byReference.clear();
+  catalogIndex.byDesignation.clear();
+  state.catalog.articles.forEach((article) => {
+    const referenceKey = normalizeLookup(article.reference);
+    const designationKey = normalizeLookup(article.designation);
+    if (referenceKey && !catalogIndex.byReference.has(referenceKey)) {
+      catalogIndex.byReference.set(referenceKey, article);
+    }
+    if (designationKey && !catalogIndex.byDesignation.has(designationKey)) {
+      catalogIndex.byDesignation.set(designationKey, article);
+    }
+  });
+}
+
+function tryApplyCatalogMatch(index, key, value) {
+  const lookup = normalizeLookup(value);
+  if (!lookup) {
+    return;
+  }
+
+  const match = key === 'designation'
+    ? catalogIndex.byDesignation.get(lookup)
+    : catalogIndex.byReference.get(lookup);
+
+  if (!match) {
+    state.draft.references[index].source = 'manual';
+    persistDraft();
+    renderReferenceLines();
+    return;
+  }
+
+  state.draft.references[index] = {
+    ...state.draft.references[index],
+    reference: match.reference,
+    designation: match.designation,
+    quantity: state.draft.references[index].quantity || 1,
+    source: 'catalog'
+  };
+  persistDraft();
+  renderReferenceLines();
+}
+
+function normalizeLookup(value) {
+  return String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '')
+    .toLowerCase()
+    .trim();
+}
+
+function createEmptyCatalog() {
+  return {
+    fileName: '',
+    tableName: '',
+    importedAt: 0,
+    articleCount: 0,
+    articles: []
+  };
 }
 
 function showToast(message) {

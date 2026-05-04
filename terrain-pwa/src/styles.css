@@ -236,6 +236,7 @@ h2 {
 .summary-card,
 .status-panel,
 .reference-counter-card,
+.catalog-card,
 .install-step,
 .empty-state {
   border-radius: var(--radius-lg);
@@ -373,6 +374,42 @@ h2 {
   margin-bottom: 12px;
 }
 
+.catalog-card {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.catalog-card__head,
+.catalog-card__actions {
+  display: flex;
+  gap: 10px;
+}
+
+.catalog-card__head {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.catalog-card__label {
+  display: inline-block;
+  color: var(--accent-strong);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.catalog-card__summary,
+.catalog-card__note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.catalog-card__note {
+  font-size: 0.92rem;
+}
+
 .reference-counter-card__label {
   display: block;
   color: var(--muted);
@@ -476,6 +513,10 @@ h2 {
   background: #eaf4f2;
   color: var(--accent-strong);
   font-weight: 800;
+}
+
+.secondary-button--compact {
+  padding: 11px 14px;
 }
 
 .ghost-button {
@@ -601,6 +642,8 @@ h2 {
   .hero-card__actions,
   .hero-card__badges,
   .reference-counter-card,
+  .catalog-card__head,
+  .catalog-card__actions,
   .section-title,
   .document-card__head,
   .reference-card__head {
