@@ -320,14 +320,16 @@ private struct CompanySettingsSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Coordonnées") {
+                Section {
                     TextField("Nom société", text: $viewModel.companySettings.companyName)
                     TextField("Adresse société", text: $viewModel.companySettings.companyAddress, axis: .vertical)
                     TextField("Téléphone société", text: $viewModel.companySettings.companyPhone)
                     TextField("E-mail société", text: $viewModel.companySettings.companyEmail)
+                } header: {
+                    Text("Coordonnées")
                 }
 
-                Section("Logo") {
+                Section {
                     HStack(spacing: 12) {
                         Group {
                             if let image = viewModel.companyLogoImage {
@@ -352,6 +354,8 @@ private struct CompanySettingsSheet: View {
                             }
                         }
                     }
+                } header: {
+                    Text("Logo")
                 }
             }
             .navigationTitle("Profil société")
@@ -367,7 +371,7 @@ private struct CompanySettingsSheet: View {
                 }
             }
             .onChange(of: selectedLogo) { newItem in
-                guard let newItem else { return }
+                guard let newItem = newItem else { return }
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self) {
                         await MainActor.run {

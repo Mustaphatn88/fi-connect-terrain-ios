@@ -35,7 +35,7 @@ enum InterventionPDFGenerator {
             var y = margin
             let headerRect = CGRect(x: margin, y: y, width: contentWidth, height: 110)
             drawSectionFrame(rect: headerRect, in: cg, borderColor: border, fillColor: UIColor(red: 0.96, green: 0.98, blue: 1.0, alpha: 1))
-            if let logoImage {
+            if let logoImage = logoImage {
                 logoImage.draw(in: CGRect(x: headerRect.minX + 12, y: headerRect.minY + 12, width: 96, height: 60))
             }
             drawText("Fiche d'intervention", font: .boldSystemFont(ofSize: 24), color: ink, rect: CGRect(x: headerRect.minX + 120, y: headerRect.minY + 12, width: contentWidth - 132, height: 28))

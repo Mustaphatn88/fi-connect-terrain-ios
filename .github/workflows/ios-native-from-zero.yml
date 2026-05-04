@@ -92,4 +92,18 @@ jobs:
             else
               echo "Aucun log de build genere."
             fi
+            echo
+            echo "### Lignes d'erreur detectees"
+            if [ -f build-simulator.log ]; then
+              grep -n "error:" build-simulator.log | tail -n 40 || echo "Aucune ligne error: detectee"
+            else
+              echo "Aucun log de build genere."
+            fi
+            echo
+            echo "### Lignes d'avertissement detectees"
+            if [ -f build-simulator.log ]; then
+              grep -n "warning:" build-simulator.log | tail -n 20 || echo "Aucune ligne warning: detectee"
+            else
+              echo "Aucun log de build genere."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
