@@ -63,7 +63,8 @@ enum InterventionPDFGenerator {
 
             let workRect = CGRect(x: margin, y: y, width: contentWidth, height: 156)
             drawTitledCard(title: "Travail effectué", rect: workRect, cg: cg, border: border)
-            let workLines = draft.workLines.enumerated().compactMap { index, value in
+            let workLines: [String] = draft.workLines.enumerated().compactMap { entry in
+                let (index, value) = entry
                 let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
                 return trimmed.isEmpty ? nil : "\(index + 1). \(trimmed)"
             }
@@ -72,7 +73,8 @@ enum InterventionPDFGenerator {
 
             let referencesRect = CGRect(x: margin, y: y, width: contentWidth, height: 170)
             drawTitledCard(title: "Pièces / articles", rect: referencesRect, cg: cg, border: border)
-            let references = draft.references.prefix(draft.referenceCount).enumerated().compactMap { index, line in
+            let references: [String] = draft.references.prefix(draft.referenceCount).enumerated().compactMap { entry in
+                let (index, line) = entry
                 let reference = line.reference.trimmingCharacters(in: .whitespacesAndNewlines)
                 let designation = line.designation.trimmingCharacters(in: .whitespacesAndNewlines)
                 if reference.isEmpty && designation.isEmpty { return nil }
