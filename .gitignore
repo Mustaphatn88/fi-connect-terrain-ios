@@ -14,3 +14,9 @@ keystore.properties
 _jetcomp_test/
 _jetcomp_test2/
 pdf_previews/
+terrain-ios/BioplusTerrainIOS.xcodeproj/
+terrain-ios/build/
+*.xcarchive
+*.ipa
+*.mobileprovision
+*.p12
