@@ -15,40 +15,81 @@
     <title>FI Connect Terrain iPhone</title>
   </head>
   <body>
-    <div id="app">
-      <header class="hero panel">
-        <div class="hero__top">
-          <div class="hero__brand">
-            <img id="heroLogo" class="hero__logo" src="./fiche_intervention_logo.png" alt="Logo société" />
-            <div>
-              <span class="eyebrow">Terrain iPhone sans Mac</span>
-              <h1>Fiche d’intervention</h1>
-              <p class="hero__subtitle">Compatible avec les réceptions Android central et démo.</p>
-            </div>
-          </div>
-          <div class="hero__status">
-            <span id="syncStatusBadge" class="status-badge">Synchronisation active</span>
-            <span id="pendingBadge" class="pending-badge">0 en attente</span>
+    <div id="app" class="app-shell">
+      <header class="hero-card">
+        <div class="hero-card__top">
+          <span class="hero-chip">Terrain iPhone sans Mac</span>
+          <div class="hero-card__badges">
+            <span id="syncStatusBadge" class="hero-pill hero-pill--success">Synchronisé</span>
+            <span id="pendingBadge" class="hero-pill hero-pill--soft">0 en attente</span>
           </div>
         </div>
-        <div class="hero__body">
-          <div class="contact-block" id="companyContactBlock"></div>
-          <div class="hero__notes">
-            <p class="install-note" id="installSummaryText">Sur iPhone: Safari → Partager → Ajouter à l’écran d’accueil → Ouvrir comme app.</p>
-            <span class="secondary-kpi" id="appModeBadge">Mode navigateur</span>
+
+        <div class="hero-card__main">
+          <img id="heroLogo" class="hero-card__logo" src="./fiche_intervention_logo.png" alt="Logo société" />
+          <div class="hero-card__copy">
+            <h1>Fiche d’intervention</h1>
+            <p class="hero-card__company">Version iPhone compatible avec les réceptions Android central et démo.</p>
+            <div class="hero-card__contact" id="companyContactBlock"></div>
+          </div>
+        </div>
+
+        <div class="hero-card__footer">
+          <p class="hero-card__hint" id="installSummaryText">
+            Pour une vraie expérience iPhone, ouvre cette fiche dans Safari puis ajoute-la à l’écran d’accueil.
+          </p>
+          <div class="hero-card__actions">
+            <span id="appModeBadge" class="hero-pill hero-pill--soft">Mode navigateur</span>
+            <button id="toggleCompanyButton" class="hero-card__button" type="button">Configurer la société</button>
           </div>
         </div>
       </header>
 
-      <section id="installGuidePanel" class="panel install-panel hidden">
-        <div class="section-head">
+      <section id="companyPanel" class="panel company-panel hidden">
+        <div class="section-title">
           <div>
-            <span class="eyebrow">Installation iPhone</span>
-            <h2 id="installGuideTitle">Installer FI Connect Terrain</h2>
+            <span class="section-chip">Personnalisation</span>
+            <h2>Profil société</h2>
           </div>
-          <button id="dismissInstallGuideButton" class="ghost-button" type="button">Masquer</button>
         </div>
-        <p id="installGuideText" class="install-panel__text">
+        <div id="companySummary" class="summary-card"></div>
+        <div class="settings-grid">
+          <label class="field">
+            <span>Nom de la société</span>
+            <input id="companyName" type="text" placeholder="Nom société" />
+          </label>
+          <label class="field field--wide">
+            <span>Adresse</span>
+            <textarea id="companyAddress" rows="2" placeholder="Adresse complète"></textarea>
+          </label>
+          <label class="field">
+            <span>Téléphone</span>
+            <input id="companyPhone" type="text" placeholder="Téléphone" />
+          </label>
+          <label class="field">
+            <span>Email</span>
+            <input id="companyEmail" type="email" placeholder="Email" />
+          </label>
+          <label class="field field--wide">
+            <span>Logo</span>
+            <input id="companyLogoInput" type="file" accept="image/*" />
+          </label>
+          <div class="company-actions field--wide">
+            <button id="saveCompanyButton" class="primary-button" type="button">Enregistrer la société</button>
+            <button id="resetLogoButton" class="ghost-button" type="button">Logo par défaut</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="installGuidePanel" class="panel install-panel hidden">
+        <div class="section-title section-title--compact">
+          <div>
+            <span class="section-chip">Installation iPhone</span>
+            <h2 id="installGuideTitle">Installer sur l’écran d’accueil</h2>
+          </div>
+          <button id="dismissInstallGuideButton" class="ghost-button ghost-button--compact" type="button">Masquer</button>
+        </div>
+        <p id="installGuideText" class="section-note">
           Ouvrez cette page dans Safari, puis ajoutez-la à l’écran d’accueil pour l’utiliser comme une vraie app.
         </p>
         <div class="install-panel__steps" id="installStepsList">
@@ -59,152 +100,129 @@
         </div>
         <div class="action-grid action-grid--compact">
           <button id="copyAppLinkButton" class="secondary-button" type="button">Copier le lien</button>
-          <button id="forceSyncButton" class="primary-button" type="button">Relancer la synchro</button>
+          <button id="forceSyncButton" class="ghost-button" type="button">Relancer la synchro</button>
         </div>
       </section>
 
-      <main class="layout">
+      <main class="terrain-main">
         <section class="panel">
-          <div class="section-head">
+          <div class="section-title">
             <div>
-              <span class="eyebrow">Personnalisation</span>
-              <h2>Société</h2>
-            </div>
-            <button id="toggleCompanyButton" class="ghost-button" type="button">Configurer</button>
-          </div>
-          <div id="companySummary" class="summary-card"></div>
-          <div id="companyPanel" class="settings-grid hidden">
-            <label class="field">
-              <span>Nom société</span>
-              <input id="companyName" type="text" />
-            </label>
-            <label class="field field--wide">
-              <span>Adresse</span>
-              <textarea id="companyAddress" rows="2"></textarea>
-            </label>
-            <label class="field">
-              <span>Téléphone</span>
-              <input id="companyPhone" type="text" />
-            </label>
-            <label class="field">
-              <span>Email</span>
-              <input id="companyEmail" type="email" />
-            </label>
-            <label class="field field--wide">
-              <span>Logo</span>
-              <input id="companyLogoInput" type="file" accept="image/*" />
-            </label>
-            <div class="company-actions field--wide">
-              <button id="saveCompanyButton" class="primary-button" type="button">Enregistrer la société</button>
-              <button id="resetLogoButton" class="secondary-button" type="button">Logo par défaut</button>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="section-head">
-            <div>
-              <span class="eyebrow">Formulaire</span>
               <h2>Informations générales</h2>
             </div>
           </div>
-          <div class="grid-two">
+
+          <div class="inline-form-row">
+            <label class="field field--inline-grow">
+              <input id="ficheNumber" type="text" placeholder="N° de fiche" />
+            </label>
+            <button id="autoNumberButton" class="chip-button" type="button">Auto</button>
+          </div>
+
+          <div class="inline-form-row">
+            <label class="field field--inline-grow">
+              <input id="interventionDate" type="text" placeholder="jj/mm/aaaa" />
+            </label>
+            <button id="todayButton" class="chip-button" type="button">Ajd.</button>
+          </div>
+
+          <div class="stack-fields">
             <label class="field">
-              <span>N° de fiche</span>
-              <div class="inline-field">
-                <input id="ficheNumber" type="text" />
-                <button id="autoNumberButton" class="chip-button" type="button">Auto</button>
-              </div>
+              <input id="laboratoryName" type="text" placeholder="Laboratoire / client" />
             </label>
             <label class="field">
-              <span>Date d’intervention</span>
-              <div class="inline-field">
-                <input id="interventionDate" type="text" placeholder="jj/mm/aaaa" />
-                <button id="todayButton" class="chip-button" type="button">Ajd.</button>
-              </div>
-            </label>
-            <label class="field field--wide">
-              <span>Laboratoire / client</span>
-              <input id="laboratoryName" type="text" />
+              <input id="locality" type="text" placeholder="Localité" />
             </label>
             <label class="field">
-              <span>Localité</span>
-              <input id="locality" type="text" />
+              <input id="serialNumber" type="text" placeholder="NS / Numéro de série" />
             </label>
             <label class="field">
-              <span>NS / Numéro de série</span>
-              <input id="serialNumber" type="text" />
+              <input id="intervenant" type="text" placeholder="Intervenant" />
+            </label>
+          </div>
+
+          <div class="grid-two grid-two--tight">
+            <label class="field">
+              <input id="interventionTime" type="text" placeholder="Temps inter" />
             </label>
             <label class="field">
-              <span>Intervenant</span>
-              <input id="intervenant" type="text" />
-            </label>
-            <label class="field">
-              <span>Temps intervention</span>
-              <input id="interventionTime" type="text" />
-            </label>
-            <label class="field">
-              <span>Temps déplacement</span>
-              <input id="travelTime" type="text" />
+              <input id="travelTime" type="text" placeholder="Temps dépl." />
             </label>
           </div>
         </section>
 
         <section class="panel">
-          <div class="section-head">
+          <div class="section-title">
             <div>
-              <span class="eyebrow">Diagnostic</span>
               <h2>Description du problème</h2>
             </div>
           </div>
           <label class="field">
-            <textarea id="description" rows="5"></textarea>
+            <textarea id="description" rows="5" placeholder="Décrire le problème constaté..."></textarea>
           </label>
         </section>
 
         <section class="panel">
-          <div class="section-head">
+          <div class="section-title">
             <div>
-              <span class="eyebrow">Intervention</span>
               <h2>Travail effectué</h2>
+              <p class="section-note">Renseignez les opérations réalisées pendant l’intervention.</p>
             </div>
           </div>
           <div id="workLines" class="stack-lines"></div>
         </section>
 
         <section class="panel">
-          <div class="section-head">
+          <div class="section-title">
             <div>
-              <span class="eyebrow">Pièces</span>
               <h2>Références / articles</h2>
+              <p class="section-note">Ajoutez uniquement les pièces réellement utilisées.</p>
+            </div>
+          </div>
+
+          <div class="reference-counter-card">
+            <div>
+              <span class="reference-counter-card__label">Nombre de pièces</span>
+              <strong class="reference-counter-card__value" id="referenceCountValueLabel">Choix manuel</strong>
             </div>
             <label class="mini-select">
               <span>Nb</span>
               <select id="referenceCount"></select>
             </label>
           </div>
+
           <div id="referenceLines" class="reference-list"></div>
         </section>
 
         <section class="panel">
-          <div class="section-head">
+          <div class="section-title">
             <div>
-              <span class="eyebrow">Clôture</span>
               <h2>Observation</h2>
             </div>
           </div>
           <label class="field">
-            <textarea id="observation" rows="3"></textarea>
+            <textarea id="observation" rows="3" placeholder="Observation finale"></textarea>
           </label>
         </section>
 
         <section class="panel">
-          <div class="section-head">
+          <div class="section-title">
             <div>
-              <span class="eyebrow">Transmission</span>
               <h2>Actions</h2>
             </div>
           </div>
+
+          <div class="status-panel">
+            <div>
+              <strong>État de liaison</strong>
+              <p id="syncStatusText">Synchronisation active</p>
+            </div>
+            <div>
+              <strong>Client terrain</strong>
+              <p id="terrainClientIdText">-</p>
+            </div>
+          </div>
+
           <div class="action-grid">
             <button id="saveDraftButton" class="secondary-button" type="button">Enregistrer</button>
             <button id="newDraftButton" class="ghost-button" type="button">Nouvelle fiche</button>
@@ -213,26 +231,17 @@
             <button id="capturePhotoButton" class="primary-button" type="button">Capturer la fiche</button>
             <button id="testLinkButton" class="ghost-button" type="button">Tester la liaison</button>
           </div>
+
           <input id="photoCaptureInput" type="file" accept="image/*" capture="environment" hidden />
-          <div class="status-panel">
-            <div>
-              <strong>État</strong>
-              <p id="syncStatusText">Synchronisation active</p>
-            </div>
-            <div>
-              <strong>Client terrain</strong>
-              <p id="terrainClientIdText">-</p>
-            </div>
-          </div>
         </section>
 
         <section class="panel panel--documents">
-          <div class="section-head">
+          <div class="section-title">
             <div>
-              <span class="eyebrow">Documents</span>
-              <h2>Dernières pièces générées</h2>
+              <h2>Pièces locales générées</h2>
+              <p class="section-note">Les derniers PDF et captures restent disponibles sur l’iPhone.</p>
             </div>
-            <button id="clearDocumentsButton" class="ghost-button" type="button">Nettoyer</button>
+            <button id="clearDocumentsButton" class="ghost-button ghost-button--compact" type="button">Nettoyer</button>
           </div>
           <div id="documentSummary" class="summary-card"></div>
           <div id="generatedDocuments" class="document-list"></div>
@@ -241,4 +250,4 @@
     </div>
     <script type="module" src="./src/main.js"></script>
   </body>
-  </html>
+</html>

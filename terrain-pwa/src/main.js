@@ -101,6 +101,7 @@ function cacheDom() {
     companyLogoInput: document.querySelector('#companyLogoInput'),
     saveCompanyButton: document.querySelector('#saveCompanyButton'),
     resetLogoButton: document.querySelector('#resetLogoButton'),
+    referenceCountValueLabel: document.querySelector('#referenceCountValueLabel'),
     ficheNumber: document.querySelector('#ficheNumber'),
     interventionDate: document.querySelector('#interventionDate'),
     laboratoryName: document.querySelector('#laboratoryName'),
@@ -132,7 +133,7 @@ function cacheDom() {
 function wireEvents() {
   elements.toggleCompanyButton.addEventListener('click', () => {
     state.companyPanelOpen = !state.companyPanelOpen;
-    elements.companyPanel.classList.toggle('hidden', !state.companyPanelOpen);
+    renderCompany();
   });
 
   elements.dismissInstallGuideButton.addEventListener('click', () => {
@@ -312,6 +313,8 @@ function renderCompany() {
   elements.companyAddress.value = state.settings.companyAddress;
   elements.companyPhone.value = state.settings.companyPhone;
   elements.companyEmail.value = state.settings.companyEmail;
+  elements.companyPanel.classList.toggle('hidden', !state.companyPanelOpen);
+  elements.toggleCompanyButton.textContent = state.companyPanelOpen ? 'Fermer la société' : 'Configurer la société';
   elements.companySummary.textContent = [
     state.settings.companyName,
     state.settings.companyAddress,
@@ -440,6 +443,9 @@ function renderReferenceCounter() {
     }
     elements.referenceCount.appendChild(option);
   }
+  elements.referenceCountValueLabel.textContent = state.draft.referenceCount
+    ? `${state.draft.referenceCount} pièce(s)`
+    : 'Aucune pièce';
 }
 
 function renderReferenceLines() {
