@@ -237,6 +237,8 @@ h2 {
 .status-panel,
 .reference-counter-card,
 .catalog-card,
+.workflow-card,
+.signature-card,
 .install-step,
 .empty-state {
   border-radius: var(--radius-lg);
@@ -282,6 +284,7 @@ h2 {
 
 .field input,
 .field textarea,
+.field select,
 .mini-select select {
   width: 100%;
   background: var(--field);
@@ -304,6 +307,7 @@ h2 {
 
 .field input:focus,
 .field textarea:focus,
+.field select:focus,
 .mini-select select:focus {
   border-color: rgba(15, 107, 105, 0.45);
   box-shadow: 0 0 0 4px rgba(15, 107, 105, 0.08);
@@ -410,6 +414,58 @@ h2 {
   font-size: 0.92rem;
 }
 
+.workflow-card {
+  padding: 14px 16px;
+}
+
+.workflow-card__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.signature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.signature-card {
+  padding: 14px;
+}
+
+.signature-preview {
+  display: grid;
+  place-items: center;
+  min-height: 110px;
+  margin-top: 12px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #fbfdfd 0%, #f3f8f8 100%);
+  border: 1px solid rgba(15, 75, 90, 0.1);
+  overflow: hidden;
+}
+
+.signature-preview img {
+  width: 100%;
+  max-height: 102px;
+  object-fit: contain;
+}
+
+.signature-preview span {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.signature-card__actions {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+
 .reference-counter-card__label {
   display: block;
   color: var(--muted);
@@ -438,6 +494,16 @@ h2 {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.reference-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.scan-button {
+  min-width: 88px;
 }
 
 .doc-chip {
@@ -635,6 +701,44 @@ h2 {
   z-index: 9999;
 }
 
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(9, 26, 35, 0.48);
+  backdrop-filter: blur(4px);
+}
+
+.modal__card {
+  width: min(96vw, 760px);
+  border-radius: 28px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 75, 90, 0.1);
+  box-shadow: 0 24px 64px rgba(9, 26, 35, 0.18);
+  padding: 18px;
+}
+
+.signature-canvas {
+  width: 100%;
+  height: auto;
+  margin-top: 12px;
+  border-radius: 20px;
+  border: 1px dashed rgba(15, 75, 90, 0.24);
+  background:
+    linear-gradient(180deg, #ffffff 0%, #f9fcfb 100%),
+    repeating-linear-gradient(
+      180deg,
+      transparent 0,
+      transparent 38px,
+      rgba(159, 192, 215, 0.38) 38px,
+      rgba(159, 192, 215, 0.38) 40px
+    );
+  touch-action: none;
+}
+
 @media (max-width: 760px) {
   .hero-card__top,
   .hero-card__footer,
@@ -644,6 +748,7 @@ h2 {
   .reference-counter-card,
   .catalog-card__head,
   .catalog-card__actions,
+  .workflow-card__actions,
   .section-title,
   .document-card__head,
   .reference-card__head {
@@ -662,11 +767,17 @@ h2 {
 
   .grid-two,
   .action-grid,
-  .status-panel {
+  .status-panel,
+  .signature-grid,
+  .workflow-card__actions {
     grid-template-columns: 1fr;
   }
 
   .document-card__actions {
     flex-direction: column;
+  }
+
+  .signature-card__actions {
+    grid-template-columns: 1fr;
   }
 }

@@ -209,7 +209,63 @@
 
           <div id="referenceLines" class="reference-list"></div>
           <input id="catalogFileInput" type="file" accept=".sqlite,.db,.sqlite3,.db3" hidden />
+          <input id="barcodeImageInput" type="file" accept="image/*" capture="environment" hidden />
           <datalist id="catalogReferenceOptions"></datalist>
+        </section>
+
+        <section class="panel">
+          <div class="section-title">
+            <div>
+              <h2>Suivi de mission & signatures</h2>
+              <p class="section-note">Pilote l’état de l’intervention, puis capture les signatures directement sur l’écran.</p>
+            </div>
+          </div>
+
+          <div class="workflow-card">
+            <label class="field">
+              <span>Statut</span>
+              <select id="workflowStatusSelect">
+                <option value="draft">Brouillon</option>
+                <option value="in_progress">En intervention</option>
+                <option value="done">Terminée</option>
+                <option value="sent">Transmise</option>
+              </select>
+            </label>
+            <div class="workflow-card__actions">
+              <button id="markMissionStartButton" class="secondary-button secondary-button--compact" type="button">Début</button>
+              <button id="markMissionDoneButton" class="secondary-button secondary-button--compact" type="button">Fin</button>
+              <button id="markMissionSentButton" class="secondary-button secondary-button--compact" type="button">Transmise</button>
+            </div>
+            <div id="workflowSummary" class="summary-card"></div>
+          </div>
+
+          <div class="signature-grid">
+            <div class="signature-card">
+              <strong>Signature technicien</strong>
+              <div class="signature-preview">
+                <img id="technicianSignaturePreview" alt="Signature technicien" />
+                <span id="technicianSignatureEmpty">Aucune signature</span>
+              </div>
+              <p id="technicianSignatureStatus" class="document-card__meta">Capture non réalisée.</p>
+              <div class="signature-card__actions">
+                <button id="captureTechnicianSignatureButton" class="primary-button" type="button">Signer</button>
+                <button id="clearTechnicianSignatureButton" class="ghost-button ghost-button--compact" type="button">Effacer</button>
+              </div>
+            </div>
+
+            <div class="signature-card">
+              <strong>Signature client / labo</strong>
+              <div class="signature-preview">
+                <img id="clientSignaturePreview" alt="Signature client" />
+                <span id="clientSignatureEmpty">Aucune signature</span>
+              </div>
+              <p id="clientSignatureStatus" class="document-card__meta">Capture non réalisée.</p>
+              <div class="signature-card__actions">
+                <button id="captureClientSignatureButton" class="primary-button" type="button">Signer</button>
+                <button id="clearClientSignatureButton" class="ghost-button ghost-button--compact" type="button">Effacer</button>
+              </div>
+            </div>
+          </div>
         </section>
 
         <section class="panel">
@@ -265,6 +321,24 @@
           <div id="generatedDocuments" class="document-list"></div>
         </section>
       </main>
+    </div>
+
+    <div id="signatureModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="signatureModalTitle">
+      <div class="modal__card">
+        <div class="section-title section-title--compact">
+          <div>
+            <span class="section-chip">Signature</span>
+            <h2 id="signatureModalTitle">Signer</h2>
+          </div>
+          <button id="closeSignatureModalButton" class="ghost-button ghost-button--compact" type="button">Fermer</button>
+        </div>
+        <p class="section-note">Signe dans la zone ci-dessous, puis enregistre.</p>
+        <canvas id="signatureCanvas" class="signature-canvas" width="900" height="280"></canvas>
+        <div class="action-grid action-grid--compact">
+          <button id="clearSignaturePadButton" class="ghost-button" type="button">Effacer le tracé</button>
+          <button id="saveSignaturePadButton" class="primary-button" type="button">Enregistrer la signature</button>
+        </div>
+      </div>
     </div>
     <script type="module" src="./src/main.js"></script>
   </body>

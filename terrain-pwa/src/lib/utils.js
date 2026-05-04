@@ -25,7 +25,13 @@ export function createDefaultDraft() {
       source: 'manual'
     })),
     referenceCount: 0,
-    observation: 'Rien à Signaler'
+    observation: 'Rien à Signaler',
+    workflowStatus: 'draft',
+    workflowStartedAt: '',
+    workflowCompletedAt: '',
+    workflowSentAt: '',
+    technicianSignatureDataUrl: '',
+    clientSignatureDataUrl: ''
   };
 }
 
@@ -42,6 +48,12 @@ export function normalizeDraft(rawDraft = {}) {
   draft.description = String(draft.description || '').trim();
   draft.observation = String(draft.observation || '').trim() || 'Rien à Signaler';
   draft.referenceCount = clampNumber(draft.referenceCount, 0, DEFAULT_REFERENCE_LINES);
+  draft.workflowStatus = normalizeWorkflowStatus(draft.workflowStatus);
+  draft.workflowStartedAt = String(draft.workflowStartedAt || '').trim();
+  draft.workflowCompletedAt = String(draft.workflowCompletedAt || '').trim();
+  draft.workflowSentAt = String(draft.workflowSentAt || '').trim();
+  draft.technicianSignatureDataUrl = String(draft.technicianSignatureDataUrl || '').trim();
+  draft.clientSignatureDataUrl = String(draft.clientSignatureDataUrl || '').trim();
 
   draft.workLines = Array.from({ length: DEFAULT_WORK_LINES }, (_, index) => String(draft.workLines?.[index] || '').trim());
   draft.references = Array.from({ length: DEFAULT_REFERENCE_LINES }, (_, index) => {
@@ -212,6 +224,12 @@ export function buildFallbackText(draft) {
     `Intervenant: ${draft.intervenant}`,
     `Temps intervention: ${draft.interventionTime}`,
     `Temps deplacement: ${draft.travelTime}`,
+    `Statut mission: ${workflowLabel(draft.workflowStatus)}`,
+    `Debut mission: ${draft.workflowStartedAt || '-'}`,
+    `Fin mission: ${draft.workflowCompletedAt || '-'}`,
+    `Transmission: ${draft.workflowSentAt || '-'}`,
+    `Signature technicien: ${draft.technicianSignatureDataUrl ? 'Oui' : 'Non'}`,
+    `Signature client: ${draft.clientSignatureDataUrl ? 'Oui' : 'Non'}`,
     '',
     'Description du problematique:',
     draft.description || '-',
@@ -262,6 +280,34 @@ export function validateDraft(draft) {
     }
   }
   return issues;
+}
+
+export function workflowLabel(status) {
+  switch (normalizeWorkflowStatus(status)) {
+    case 'in_progress':
+      return 'En intervention';
+    case 'done':
+      return 'Terminée';
+    case 'sent':
+      return 'Transmise';
+    default:
+      return 'Brouillon';
+  }
+}
+
+export function nowLocalString(date = new Date()) {
+  return new Intl.DateTimeFormat('fr-FR', {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  }).format(date);
+}
+
+export function normalizeWorkflowStatus(value) {
+  const status = String(value || '').trim();
+  if (['draft', 'in_progress', 'done', 'sent'].includes(status)) {
+    return status;
+  }
+  return 'draft';
 }
 
 export async function fileToDataUrl(file) {

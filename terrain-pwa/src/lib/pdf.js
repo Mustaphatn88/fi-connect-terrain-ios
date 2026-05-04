@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import {
-  contactBlock
+  contactBlock,
+  workflowLabel
 } from './utils.js';
 
 export async function generateInterventionPdf({ draft, settings, logoDataUrl }) {
@@ -47,6 +48,12 @@ export async function generateInterventionPdf({ draft, settings, logoDataUrl }) 
     .filter(Boolean)
     .join('\n') || 'Aucune pièce renseignée.';
   cursorY = drawTextCard(pdf, 'Pièces / articles', references, cursorY + 12, contentWidth, margin, 164);
+
+  cursorY = drawCard(pdf, 'Suivi de mission', [
+    [`Statut : ${workflowLabel(draft.workflowStatus)}`, `Début : ${draft.workflowStartedAt || '-'}`],
+    [`Technicien : ${draft.technicianSignatureDataUrl ? 'Signature présente' : 'Sans signature'}`, `Fin : ${draft.workflowCompletedAt || '-'}`],
+    [`Client / labo : ${draft.clientSignatureDataUrl ? 'Signature présente' : 'Sans signature'}`, `Transmission : ${draft.workflowSentAt || '-'}`]
+  ], cursorY + 12, contentWidth, margin, 96);
 
   cursorY = drawSignatureCard(pdf, draft, cursorY + 12, contentWidth, margin);
   drawTextCard(pdf, 'Observation', draft.observation || 'Rien à Signaler', cursorY + 12, contentWidth, margin, 74);
@@ -127,7 +134,7 @@ function drawTextCard(pdf, title, text, startY, width, x, height) {
 }
 
 function drawSignatureCard(pdf, draft, startY, width, x) {
-  const height = 88;
+  const height = 116;
   roundedRect(pdf, x, startY, width, height, '#dbe8f2', '#ffffff');
   pdf.setTextColor('#0f2330');
   pdf.setFont('helvetica', 'bold');
@@ -140,8 +147,17 @@ function drawSignatureCard(pdf, draft, startY, width, x) {
 
   pdf.setLineWidth(0.8);
   pdf.setDrawColor('#9fc0d7');
+  const leftBoxX = x + 112;
+  const topBoxY = startY + 34;
+  const boxWidth = (width / 2) - 138;
+  const boxHeight = 44;
+  pdf.roundedRect(leftBoxX, topBoxY, boxWidth, boxHeight, 10, 10);
+  pdf.roundedRect(x + (width / 2) + 90, topBoxY, boxWidth, boxHeight, 10, 10);
   pdf.line(x + 18, startY + height - 22, x + (width / 2) - 18, startY + height - 22);
   pdf.line(x + (width / 2) + 18, startY + height - 22, x + width - 18, startY + height - 22);
+
+  drawSignatureImage(pdf, draft.technicianSignatureDataUrl, leftBoxX, topBoxY, boxWidth, boxHeight);
+  drawSignatureImage(pdf, draft.clientSignatureDataUrl, x + (width / 2) + 90, topBoxY, boxWidth, boxHeight);
 
   pdf.setFont('helvetica', 'normal');
   pdf.setFontSize(10);
@@ -169,4 +185,15 @@ function drawMultiline(pdf, text, x, y, width, lineHeight) {
   lines.forEach((line, index) => {
     pdf.text(line, x, y + (index * lineHeight));
   });
+}
+
+function drawSignatureImage(pdf, dataUrl, x, y, width, height) {
+  if (!dataUrl) {
+    return;
+  }
+  try {
+    pdf.addImage(dataUrl, 'PNG', x + 6, y + 6, width - 12, height - 12, undefined, 'FAST');
+  } catch {
+    // Ignore unsupported image payloads and keep the PDF alive.
+  }
 }

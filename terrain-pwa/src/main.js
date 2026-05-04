@@ -33,7 +33,9 @@ import {
   timestampFileString,
   todayString,
   autoFicheNumber,
+  nowLocalString,
   validateDraft,
+  workflowLabel,
   writeJsonStorage
 } from './lib/utils.js';
 
@@ -45,7 +47,9 @@ const state = {
   syncStatus: 'Synchronisation active.',
   pendingCount: 0,
   companyPanelOpen: false,
-  installGuideDismissed: false
+  installGuideDismissed: false,
+  scanTargetIndex: -1,
+  signatureTarget: null
 };
 
 const elements = {};
@@ -65,6 +69,13 @@ const uploader = new RelayUploader({
   }
 });
 
+const signaturePad = {
+  context: null,
+  drawing: false,
+  hasInk: false,
+  lastPoint: null
+};
+
 init().catch((error) => {
   console.error('PWA init failed', error);
   showToast(`Initialisation impossible: ${error.message || error}`);
@@ -72,6 +83,7 @@ init().catch((error) => {
 
 async function init() {
   cacheDom();
+  setupSignaturePad();
   await hydrateCatalog();
   wireEvents();
   renderForm();
@@ -117,6 +129,7 @@ function cacheDom() {
     clearCatalogButton: document.querySelector('#clearCatalogButton'),
     catalogFileInput: document.querySelector('#catalogFileInput'),
     catalogReferenceOptions: document.querySelector('#catalogReferenceOptions'),
+    barcodeImageInput: document.querySelector('#barcodeImageInput'),
     referenceCountValueLabel: document.querySelector('#referenceCountValueLabel'),
     ficheNumber: document.querySelector('#ficheNumber'),
     interventionDate: document.querySelector('#interventionDate'),
@@ -131,6 +144,27 @@ function cacheDom() {
     workLines: document.querySelector('#workLines'),
     referenceCount: document.querySelector('#referenceCount'),
     referenceLines: document.querySelector('#referenceLines'),
+    workflowStatusSelect: document.querySelector('#workflowStatusSelect'),
+    workflowSummary: document.querySelector('#workflowSummary'),
+    markMissionStartButton: document.querySelector('#markMissionStartButton'),
+    markMissionDoneButton: document.querySelector('#markMissionDoneButton'),
+    markMissionSentButton: document.querySelector('#markMissionSentButton'),
+    technicianSignaturePreview: document.querySelector('#technicianSignaturePreview'),
+    technicianSignatureEmpty: document.querySelector('#technicianSignatureEmpty'),
+    technicianSignatureStatus: document.querySelector('#technicianSignatureStatus'),
+    captureTechnicianSignatureButton: document.querySelector('#captureTechnicianSignatureButton'),
+    clearTechnicianSignatureButton: document.querySelector('#clearTechnicianSignatureButton'),
+    clientSignaturePreview: document.querySelector('#clientSignaturePreview'),
+    clientSignatureEmpty: document.querySelector('#clientSignatureEmpty'),
+    clientSignatureStatus: document.querySelector('#clientSignatureStatus'),
+    captureClientSignatureButton: document.querySelector('#captureClientSignatureButton'),
+    clearClientSignatureButton: document.querySelector('#clearClientSignatureButton'),
+    signatureModal: document.querySelector('#signatureModal'),
+    signatureModalTitle: document.querySelector('#signatureModalTitle'),
+    closeSignatureModalButton: document.querySelector('#closeSignatureModalButton'),
+    clearSignaturePadButton: document.querySelector('#clearSignaturePadButton'),
+    saveSignaturePadButton: document.querySelector('#saveSignaturePadButton'),
+    signatureCanvas: document.querySelector('#signatureCanvas'),
     saveDraftButton: document.querySelector('#saveDraftButton'),
     newDraftButton: document.querySelector('#newDraftButton'),
     exportPdfButton: document.querySelector('#exportPdfButton'),
@@ -245,6 +279,68 @@ function wireEvents() {
     renderReferenceLines();
   });
 
+  elements.workflowStatusSelect.addEventListener('change', () => {
+    state.draft.workflowStatus = elements.workflowStatusSelect.value;
+    persistDraft();
+    renderWorkflow();
+  });
+
+  elements.markMissionStartButton.addEventListener('click', () => {
+    state.draft.workflowStatus = 'in_progress';
+    state.draft.workflowStartedAt = nowLocalString();
+    persistDraft();
+    renderWorkflow();
+    showToast('Début de mission enregistré.');
+  });
+
+  elements.markMissionDoneButton.addEventListener('click', () => {
+    state.draft.workflowStatus = 'done';
+    state.draft.workflowCompletedAt = nowLocalString();
+    persistDraft();
+    renderWorkflow();
+    showToast('Fin de mission enregistrée.');
+  });
+
+  elements.markMissionSentButton.addEventListener('click', () => {
+    state.draft.workflowStatus = 'sent';
+    state.draft.workflowSentAt = nowLocalString();
+    persistDraft();
+    renderWorkflow();
+    showToast('Statut transmis enregistré.');
+  });
+
+  elements.captureTechnicianSignatureButton.addEventListener('click', () => {
+    openSignatureModal('technician');
+  });
+
+  elements.captureClientSignatureButton.addEventListener('click', () => {
+    openSignatureModal('client');
+  });
+
+  elements.clearTechnicianSignatureButton.addEventListener('click', () => {
+    state.draft.technicianSignatureDataUrl = '';
+    persistDraft();
+    renderWorkflow();
+    showToast('Signature technicien effacée.');
+  });
+
+  elements.clearClientSignatureButton.addEventListener('click', () => {
+    state.draft.clientSignatureDataUrl = '';
+    persistDraft();
+    renderWorkflow();
+    showToast('Signature client effacée.');
+  });
+
+  elements.closeSignatureModalButton.addEventListener('click', closeSignatureModal);
+  elements.clearSignaturePadButton.addEventListener('click', clearSignaturePadCanvas);
+  elements.saveSignaturePadButton.addEventListener('click', saveSignatureFromPad);
+
+  elements.signatureModal.addEventListener('click', (event) => {
+    if (event.target === elements.signatureModal) {
+      closeSignatureModal();
+    }
+  });
+
   elements.importCatalogButton.addEventListener('click', () => {
     elements.catalogFileInput.click();
   });
@@ -283,6 +379,30 @@ function wireEvents() {
     renderCatalog();
     renderReferenceLines();
     showToast('Base pièces réinitialisée.');
+  });
+
+  elements.barcodeImageInput.addEventListener('change', async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || state.scanTargetIndex < 0) {
+      elements.barcodeImageInput.value = '';
+      return;
+    }
+
+    try {
+      const code = await detectBarcodeFromFile(file);
+      if (!code) {
+        showToast('Aucun code-barres détecté. Utilise la saisie libre si besoin.');
+      } else {
+        applyScannedCodeToReference(state.scanTargetIndex, code);
+        showToast(`Code détecté: ${code}`);
+      }
+    } catch (error) {
+      console.error(error);
+      showToast(`Scan impossible: ${error.message || error}`);
+    } finally {
+      state.scanTargetIndex = -1;
+      elements.barcodeImageInput.value = '';
+    }
   });
 
   elements.saveDraftButton.addEventListener('click', () => {
@@ -468,6 +588,7 @@ function renderForm() {
   renderWorkLines();
   renderReferenceCounter();
   renderReferenceLines();
+  renderWorkflow();
 }
 
 function renderWorkLines() {
@@ -513,6 +634,31 @@ function renderCatalog() {
   renderCatalogOptions();
 }
 
+function renderWorkflow() {
+  elements.workflowStatusSelect.value = state.draft.workflowStatus;
+  elements.workflowSummary.textContent = [
+    `Statut actuel: ${workflowLabel(state.draft.workflowStatus)}`,
+    `Début mission: ${state.draft.workflowStartedAt || '-'}`,
+    `Fin mission: ${state.draft.workflowCompletedAt || '-'}`,
+    `Transmise: ${state.draft.workflowSentAt || '-'}`
+  ].join('\n');
+
+  updateSignaturePreview(
+    elements.technicianSignaturePreview,
+    elements.technicianSignatureEmpty,
+    elements.technicianSignatureStatus,
+    state.draft.technicianSignatureDataUrl,
+    'Signature technicien enregistrée.'
+  );
+  updateSignaturePreview(
+    elements.clientSignaturePreview,
+    elements.clientSignatureEmpty,
+    elements.clientSignatureStatus,
+    state.draft.clientSignatureDataUrl,
+    'Signature client enregistrée.'
+  );
+}
+
 function renderCatalogOptions() {
   elements.catalogReferenceOptions.innerHTML = '';
   state.catalog.articles.slice(0, 800).forEach((article) => {
@@ -537,7 +683,8 @@ function renderReferenceLines() {
     card.innerHTML = `
       <div class="reference-card__head">
         <strong>Pièce ${index + 1}</strong>
-        <div class="hero-card__badges">
+        <div class="reference-actions">
+          <button class="ghost-button ghost-button--compact scan-button" data-scan-index="${index}" type="button">Scanner</button>
           <span class="doc-kind">${line.source === 'catalog' ? 'BASE' : 'LIBRE'}</span>
           <span class="doc-chip">Qté ${line.quantity}</span>
         </div>
@@ -576,6 +723,10 @@ function renderReferenceLines() {
         });
       }
     });
+    card.querySelector(`[data-scan-index="${index}"]`).addEventListener('click', () => {
+      state.scanTargetIndex = index;
+      elements.barcodeImageInput.click();
+    });
     elements.referenceLines.appendChild(card);
   }
 }
@@ -589,6 +740,9 @@ function renderSyncState() {
 async function handlePdfExport(shareAfter) {
   try {
     syncDraftFromInputs();
+    if (!state.draft.workflowStartedAt) {
+      state.draft.workflowStartedAt = nowLocalString();
+    }
     const issues = validateDraft(state.draft);
     if (issues.length) {
       showToast(issues.join(' '));
@@ -622,6 +776,10 @@ async function handlePdfExport(shareAfter) {
       fallbackText: buildFallbackText(state.draft),
       createdAt: Date.now()
     });
+    state.draft.workflowStatus = 'sent';
+    state.draft.workflowSentAt = nowLocalString();
+    persistDraft();
+    renderWorkflow();
     await refreshDocuments();
     if (shareAfter) {
       await shareOrDownload(record.blob, record.fileName, record.mimeType);
@@ -808,6 +966,204 @@ function createEmptyCatalog() {
     articleCount: 0,
     articles: []
   };
+}
+
+function updateSignaturePreview(imageElement, emptyElement, statusElement, dataUrl, successLabel) {
+  if (dataUrl) {
+    imageElement.src = dataUrl;
+    imageElement.classList.remove('hidden');
+    emptyElement.classList.add('hidden');
+    statusElement.textContent = successLabel;
+    return;
+  }
+
+  imageElement.removeAttribute('src');
+  imageElement.classList.add('hidden');
+  emptyElement.classList.remove('hidden');
+  statusElement.textContent = 'Capture non réalisée.';
+}
+
+function openSignatureModal(target) {
+  state.signatureTarget = target;
+  elements.signatureModalTitle.textContent = target === 'technician'
+    ? 'Signature technicien'
+    : 'Signature client / labo';
+  clearSignaturePadCanvas();
+  elements.signatureModal.classList.remove('hidden');
+}
+
+function closeSignatureModal() {
+  elements.signatureModal.classList.add('hidden');
+  state.signatureTarget = null;
+}
+
+function setupSignaturePad() {
+  const canvas = elements.signatureCanvas;
+  const context = canvas.getContext('2d', { alpha: true });
+  signaturePad.context = context;
+  context.lineCap = 'round';
+  context.lineJoin = 'round';
+  context.strokeStyle = '#1d5f92';
+  context.lineWidth = 2.2;
+
+  const pointFromEvent = (event) => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    return {
+      x: (event.clientX - rect.left) * scaleX,
+      y: (event.clientY - rect.top) * scaleY
+    };
+  };
+
+  canvas.addEventListener('pointerdown', (event) => {
+    signaturePad.drawing = true;
+    signaturePad.hasInk = true;
+    signaturePad.lastPoint = pointFromEvent(event);
+    context.beginPath();
+    context.moveTo(signaturePad.lastPoint.x, signaturePad.lastPoint.y);
+    canvas.setPointerCapture?.(event.pointerId);
+  });
+
+  canvas.addEventListener('pointermove', (event) => {
+    if (!signaturePad.drawing || !signaturePad.lastPoint) {
+      return;
+    }
+    const point = pointFromEvent(event);
+    context.lineTo(point.x, point.y);
+    context.stroke();
+    signaturePad.lastPoint = point;
+  });
+
+  const endDrawing = () => {
+    signaturePad.drawing = false;
+    signaturePad.lastPoint = null;
+  };
+
+  canvas.addEventListener('pointerup', endDrawing);
+  canvas.addEventListener('pointerleave', endDrawing);
+  canvas.addEventListener('pointercancel', endDrawing);
+
+  clearSignaturePadCanvas();
+}
+
+function clearSignaturePadCanvas() {
+  const canvas = elements.signatureCanvas;
+  const context = signaturePad.context;
+  if (!context) {
+    return;
+  }
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  signaturePad.hasInk = false;
+  signaturePad.lastPoint = null;
+}
+
+function saveSignatureFromPad() {
+  if (!signaturePad.hasInk || !state.signatureTarget) {
+    showToast('Ajoute une signature avant d’enregistrer.');
+    return;
+  }
+
+  const dataUrl = exportTrimmedSignature(elements.signatureCanvas);
+  if (!dataUrl) {
+    showToast('Signature vide. Réessaie.');
+    return;
+  }
+
+  if (state.signatureTarget === 'technician') {
+    state.draft.technicianSignatureDataUrl = dataUrl;
+  } else {
+    state.draft.clientSignatureDataUrl = dataUrl;
+  }
+
+  persistDraft();
+  renderWorkflow();
+  closeSignatureModal();
+  showToast('Signature enregistrée.');
+}
+
+function exportTrimmedSignature(canvas) {
+  const context = canvas.getContext('2d', { willReadFrequently: true });
+  const { width, height } = canvas;
+  const imageData = context.getImageData(0, 0, width, height).data;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const alpha = imageData[(y * width + x) * 4 + 3];
+      if (alpha > 0) {
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return '';
+  }
+
+  const paddingX = 18;
+  const paddingY = 12;
+  const cropX = Math.max(0, minX - paddingX);
+  const cropY = Math.max(0, minY - paddingY);
+  const cropWidth = Math.min(width - cropX, (maxX - minX) + (paddingX * 2));
+  const cropHeight = Math.min(height - cropY, (maxY - minY) + (paddingY * 2));
+
+  const exportCanvas = document.createElement('canvas');
+  exportCanvas.width = cropWidth;
+  exportCanvas.height = cropHeight;
+  const exportContext = exportCanvas.getContext('2d', { alpha: true });
+  exportContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+  return exportCanvas.toDataURL('image/png');
+}
+
+async function detectBarcodeFromFile(file) {
+  if (!('BarcodeDetector' in window)) {
+    throw new Error('Le scan code-barres dépend du navigateur. Utilise Chrome Android récent ou saisis la pièce manuellement.');
+  }
+
+  const detector = new window.BarcodeDetector({
+    formats: ['qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e']
+  });
+  const bitmap = await createImageBitmap(file);
+
+  try {
+    const results = await detector.detect(bitmap);
+    return results?.[0]?.rawValue?.trim() || '';
+  } finally {
+    bitmap.close();
+  }
+}
+
+function applyScannedCodeToReference(index, code) {
+  const lookup = normalizeLookup(code);
+  const match = state.catalog.articles.find((article) => {
+    return normalizeLookup(article.barcode) === lookup || normalizeLookup(article.reference) === lookup;
+  });
+
+  if (match) {
+    state.draft.references[index] = {
+      ...state.draft.references[index],
+      reference: match.reference,
+      designation: match.designation,
+      quantity: state.draft.references[index].quantity || 1,
+      source: 'catalog'
+    };
+  } else {
+    state.draft.references[index] = {
+      ...state.draft.references[index],
+      reference: code,
+      source: 'manual'
+    };
+  }
+
+  persistDraft();
+  renderReferenceLines();
 }
 
 function showToast(message) {
