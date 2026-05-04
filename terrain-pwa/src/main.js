@@ -5,7 +5,6 @@ import {
   SETTINGS_STORAGE_KEY
 } from './lib/constants.js';
 import {
-  clearArticleCatalog,
   getArticleCatalog,
   clearGeneratedDocuments,
   getGeneratedDocuments,
@@ -14,7 +13,7 @@ import {
 } from './lib/storage.js';
 import { generateInterventionPdf } from './lib/pdf.js';
 import { RelayUploader } from './lib/relay.js';
-import { importCatalogFromSqlite } from './lib/catalog.js';
+import { importCatalogFromArrayBuffer, importCatalogFromSqlite } from './lib/catalog.js';
 import {
   blobToDataUrl,
   buildFallbackText,
@@ -85,6 +84,7 @@ async function init() {
   cacheDom();
   setupSignaturePad();
   await hydrateCatalog();
+  await ensureDefaultCatalogLoaded();
   wireEvents();
   renderForm();
   renderCompany();
@@ -146,9 +146,6 @@ function cacheDom() {
     referenceLines: document.querySelector('#referenceLines'),
     workflowStatusSelect: document.querySelector('#workflowStatusSelect'),
     workflowSummary: document.querySelector('#workflowSummary'),
-    markMissionStartButton: document.querySelector('#markMissionStartButton'),
-    markMissionDoneButton: document.querySelector('#markMissionDoneButton'),
-    markMissionSentButton: document.querySelector('#markMissionSentButton'),
     technicianSignaturePreview: document.querySelector('#technicianSignaturePreview'),
     technicianSignatureEmpty: document.querySelector('#technicianSignatureEmpty'),
     technicianSignatureStatus: document.querySelector('#technicianSignatureStatus'),
@@ -285,30 +282,6 @@ function wireEvents() {
     renderWorkflow();
   });
 
-  elements.markMissionStartButton.addEventListener('click', () => {
-    state.draft.workflowStatus = 'in_progress';
-    state.draft.workflowStartedAt = nowLocalString();
-    persistDraft();
-    renderWorkflow();
-    showToast('Début de mission enregistré.');
-  });
-
-  elements.markMissionDoneButton.addEventListener('click', () => {
-    state.draft.workflowStatus = 'done';
-    state.draft.workflowCompletedAt = nowLocalString();
-    persistDraft();
-    renderWorkflow();
-    showToast('Fin de mission enregistrée.');
-  });
-
-  elements.markMissionSentButton.addEventListener('click', () => {
-    state.draft.workflowStatus = 'sent';
-    state.draft.workflowSentAt = nowLocalString();
-    persistDraft();
-    renderWorkflow();
-    showToast('Statut transmis enregistré.');
-  });
-
   elements.captureTechnicianSignatureButton.addEventListener('click', () => {
     openSignatureModal('technician');
   });
@@ -368,17 +341,7 @@ function wireEvents() {
   });
 
   elements.clearCatalogButton.addEventListener('click', async () => {
-    await clearArticleCatalog();
-    state.catalog = createEmptyCatalog();
-    rebuildCatalogIndex();
-    state.draft.references = state.draft.references.map((line) => ({
-      ...line,
-      source: 'manual'
-    }));
-    persistDraft();
-    renderCatalog();
-    renderReferenceLines();
-    showToast('Base pièces réinitialisée.');
+    await loadDefaultCatalog(true);
   });
 
   elements.barcodeImageInput.addEventListener('change', async (event) => {
@@ -629,7 +592,7 @@ function renderReferenceCounter() {
 function renderCatalog() {
   const hasCatalog = state.catalog.articleCount > 0;
   elements.catalogSummary.textContent = hasCatalog
-    ? `${state.catalog.articleCount} article(s) • table ${state.catalog.tableName} • ${state.catalog.fileName}`
+    ? `${state.catalog.articleCount} article(s) • table ${state.catalog.tableName} • ${state.catalog.sourceLabel || state.catalog.fileName}`
     : 'Aucune base importée pour le moment.';
   renderCatalogOptions();
 }
@@ -638,9 +601,8 @@ function renderWorkflow() {
   elements.workflowStatusSelect.value = state.draft.workflowStatus;
   elements.workflowSummary.textContent = [
     `Statut actuel: ${workflowLabel(state.draft.workflowStatus)}`,
-    `Début mission: ${state.draft.workflowStartedAt || '-'}`,
-    `Fin mission: ${state.draft.workflowCompletedAt || '-'}`,
-    `Transmise: ${state.draft.workflowSentAt || '-'}`
+    `Signature technicien: ${state.draft.technicianSignatureDataUrl ? 'Présente' : 'Absente'}`,
+    `Signature client / labo: ${state.draft.clientSignatureDataUrl ? 'Présente' : 'Absente'}`
   ].join('\n');
 
   updateSignaturePreview(
@@ -740,9 +702,6 @@ function renderSyncState() {
 async function handlePdfExport(shareAfter) {
   try {
     syncDraftFromInputs();
-    if (!state.draft.workflowStartedAt) {
-      state.draft.workflowStartedAt = nowLocalString();
-    }
     const issues = validateDraft(state.draft);
     if (issues.length) {
       showToast(issues.join(' '));
@@ -906,6 +865,40 @@ async function hydrateCatalog() {
   rebuildCatalogIndex();
 }
 
+async function ensureDefaultCatalogLoaded() {
+  if (state.catalog.articleCount > 0) {
+    return;
+  }
+  await loadDefaultCatalog(false);
+}
+
+async function loadDefaultCatalog(notify = false) {
+  try {
+    const response = await fetch('./data/stock_android.sqlite');
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    const buffer = await response.arrayBuffer();
+    const defaultCatalog = await importCatalogFromArrayBuffer(buffer, 'stock_android.sqlite');
+    state.catalog = {
+      ...defaultCatalog,
+      sourceLabel: 'Base intégrée'
+    };
+    rebuildCatalogIndex();
+    await saveArticleCatalog(state.catalog);
+    renderCatalog();
+    renderReferenceLines();
+    if (notify) {
+      showToast('Base pièces par défaut restaurée.');
+    }
+  } catch (error) {
+    console.error(error);
+    if (notify) {
+      showToast(`Impossible de restaurer la base intégrée: ${error.message || error}`);
+    }
+  }
+}
+
 function rebuildCatalogIndex() {
   catalogIndex.byReference.clear();
   catalogIndex.byDesignation.clear();
@@ -964,7 +957,8 @@ function createEmptyCatalog() {
     tableName: '',
     importedAt: 0,
     articleCount: 0,
-    articles: []
+    articles: [],
+    sourceLabel: ''
   };
 }
 
@@ -1115,10 +1109,17 @@ function exportTrimmedSignature(canvas) {
   const cropHeight = Math.min(height - cropY, (maxY - minY) + (paddingY * 2));
 
   const exportCanvas = document.createElement('canvas');
-  exportCanvas.width = cropWidth;
-  exportCanvas.height = cropHeight;
+  exportCanvas.width = 920;
+  exportCanvas.height = 240;
   const exportContext = exportCanvas.getContext('2d', { alpha: true });
-  exportContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+  const contentWidth = exportCanvas.width - 60;
+  const contentHeight = exportCanvas.height - 40;
+  const scale = Math.min(contentWidth / cropWidth, contentHeight / cropHeight);
+  const drawWidth = cropWidth * scale;
+  const drawHeight = cropHeight * scale;
+  const drawX = (exportCanvas.width - drawWidth) / 2;
+  const drawY = (exportCanvas.height - drawHeight) / 2;
+  exportContext.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, drawX, drawY, drawWidth, drawHeight);
   return exportCanvas.toDataURL('image/png');
 }
 

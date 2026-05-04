@@ -121,8 +121,12 @@ function mapRows(rows, columns) {
 }
 
 export async function importCatalogFromSqlite(file) {
-  const SQL = await getSqlJs();
   const buffer = await file.arrayBuffer();
+  return importCatalogFromArrayBuffer(buffer, file.name);
+}
+
+export async function importCatalogFromArrayBuffer(buffer, fileName = 'stock_android.sqlite') {
+  const SQL = await getSqlJs();
   const db = new SQL.Database(new Uint8Array(buffer));
 
   try {
@@ -138,7 +142,7 @@ export async function importCatalogFromSqlite(file) {
     }
 
     return {
-      fileName: file.name,
+      fileName,
       tableName,
       importedAt: Date.now(),
       articleCount: articles.length,
