@@ -1,0 +1,95 @@
+name: Build Terrain iOS Native From Zero
+
+run-name: "iOS native from zero · ${{ github.ref_name }} · ${{ github.sha }}"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "terrain-ios/**"
+      - ".github/workflows/ios-native-from-zero.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-simulator:
+    runs-on: macos-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: terrain-ios
+        run: xcodegen generate
+
+      - name: Inspect generated project
+        working-directory: terrain-ios
+        run: |
+          set -o pipefail
+          xcodebuild -list -project BioplusTerrainIOS.xcodeproj | tee xcode-project-info.log
+          xcrun simctl list devices available | tee simulator-devices.log
+
+      - name: Build for iOS Simulator (unsigned)
+        working-directory: terrain-ios
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project BioplusTerrainIOS.xcodeproj \
+            -scheme BioplusTerrainIOS \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            clean build | tee build-simulator.log
+
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: terrain-ios-zero-build-logs
+          path: |
+            terrain-ios/xcode-project-info.log
+            terrain-ios/simulator-devices.log
+            terrain-ios/build-simulator.log
+          if-no-files-found: ignore
+
+      - name: Publish build summary
+        if: always()
+        working-directory: terrain-ios
+        run: |
+          {
+            echo "## Build iOS natif depuis zero"
+            echo
+            echo "- Branche : ${GITHUB_REF_NAME}"
+            echo "- Commit : ${GITHUB_SHA}"
+            echo
+            echo "### Projet genere"
+            if [ -f xcode-project-info.log ]; then
+              tail -n 40 xcode-project-info.log
+            else
+              echo "Aucune information de projet generee."
+            fi
+            echo
+            echo "### Dernieres lignes du build"
+            if [ -f build-simulator.log ]; then
+              tail -n 120 build-simulator.log
+            else
+              echo "Aucun log de build genere."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
