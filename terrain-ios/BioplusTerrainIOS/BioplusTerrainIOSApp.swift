@@ -11,7 +11,7 @@ struct BioplusTerrainIOSApp: App {
                 .task {
                     viewModel.start()
                 }
-                .onChange(of: scenePhase) { _, newPhase in
+                .onChange(of: scenePhase) { newPhase in
                     viewModel.handleScenePhase(newPhase)
                 }
         }

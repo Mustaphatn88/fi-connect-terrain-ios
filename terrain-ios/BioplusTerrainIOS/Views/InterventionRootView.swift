@@ -366,7 +366,7 @@ private struct CompanySettingsSheet: View {
                     }
                 }
             }
-            .onChange(of: selectedLogo) { _, newItem in
+            .onChange(of: selectedLogo) { newItem in
                 guard let newItem else { return }
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self) {

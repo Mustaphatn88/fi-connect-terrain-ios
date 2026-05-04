@@ -1,5 +1,8 @@
 name: Build Terrain iOS Native
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   workflow_dispatch:
     inputs:
@@ -51,10 +54,12 @@ jobs:
             clean build | tee build-simulator.log
 
       - name: Upload simulator build log
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: terrain-ios-build-log
           path: terrain-ios/build-simulator.log
+          if-no-files-found: ignore
 
   export-signed-ipa:
     if: ${{ github.event_name == 'workflow_dispatch' && inputs.export_signed_ipa == true }}
