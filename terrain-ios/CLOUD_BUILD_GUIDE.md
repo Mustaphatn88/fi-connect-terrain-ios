@@ -14,7 +14,7 @@ Le workflow GitHub Actions :
 
 Fichier du workflow :
 
-- [.github/workflows/build-terrain-ios-native.yml](C:/Users/MDaba/Documents/New%20project/.github/workflows/build-terrain-ios-native.yml)
+- [.github/workflows/ios-native-from-zero.yml](C:/Users/MDaba/Documents/New%20project/.github/workflows/ios-native-from-zero.yml)
 
 ## Déclenchement
 
@@ -30,7 +30,7 @@ Le job de vérification se lance automatiquement si :
 Le build signé se lance manuellement depuis :
 
 - `Actions`
-- `Build Terrain iOS Native`
+- `Build Terrain iOS Native From Zero`
 - `Run workflow`
 - cocher `Construire aussi une IPA signée`
 

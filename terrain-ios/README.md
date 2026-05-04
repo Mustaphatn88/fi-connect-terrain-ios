@@ -48,7 +48,7 @@ Le poste actuel est sous Windows, donc la compilation iOS finale doit se faire s
 
 Une chaîne **cloud macOS** est maintenant préparée dans le projet :
 
-- workflow GitHub Actions : [build-terrain-ios-native.yml](C:/Users/MDaba/Documents/New%20project/.github/workflows/build-terrain-ios-native.yml)
+- workflow GitHub Actions : [ios-native-from-zero.yml](C:/Users/MDaba/Documents/New%20project/.github/workflows/ios-native-from-zero.yml)
 - guide complet : [CLOUD_BUILD_GUIDE.md](C:/Users/MDaba/Documents/New%20project/terrain-ios/CLOUD_BUILD_GUIDE.md)
 
 Cette chaîne permet :
