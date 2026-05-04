@@ -320,11 +320,13 @@ final class RelayUploadService: ObservableObject {
     }
 
     private func buildFallbackText(from draft: InterventionDraft) -> String {
-        let workLines = draft.workLines.enumerated().compactMap { index, line in
+        let workLines: [String] = draft.workLines.enumerated().compactMap { entry in
+            let (index, line) = entry
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             return trimmed.isEmpty ? nil : "\(index + 1). \(trimmed)"
         }
-        let references = draft.references.prefix(draft.referenceCount).enumerated().compactMap { index, line in
+        let references: [String] = draft.references.prefix(draft.referenceCount).enumerated().compactMap { entry in
+            let (index, line) = entry
             let reference = line.reference.trimmingCharacters(in: .whitespacesAndNewlines)
             let designation = line.designation.trimmingCharacters(in: .whitespacesAndNewlines)
             if reference.isEmpty && designation.isEmpty { return nil }
