@@ -35,9 +35,14 @@ export async function generateInterventionPdf({ draft, settings, logoDataUrl }) 
     height: px(bottom - top)
   });
 
+  const preparedDraft = {
+    ...draft,
+    technicianSignatureDataUrl: await normalizePdfImageDataUrl(draft.technicianSignatureDataUrl, { kind: 'signature' }),
+    clientSignatureDataUrl: await normalizePdfImageDataUrl(draft.clientSignatureDataUrl, { kind: 'signature' })
+  };
   const logo = await resolveLogoDataUrl(logoDataUrl);
 
-  drawPage(pdf, draft, settings, logo, px, rect, pageWidth, pageHeight);
+  drawPage(pdf, preparedDraft, settings, logo, px, rect, pageWidth, pageHeight);
 
   const blob = pdf.output('blob');
   const fileName = `Fiche_Intervention_${draft.ficheNumber || 'sans_numero'}.pdf`;
@@ -707,9 +712,64 @@ async function ensureFonts(pdf) {
 
 async function resolveLogoDataUrl(logoDataUrl) {
   if (logoDataUrl) {
-    return logoDataUrl;
+    const normalizedCustomLogo = await normalizePdfImageDataUrl(logoDataUrl, { kind: 'logo' });
+    if (normalizedCustomLogo) {
+      return normalizedCustomLogo;
+    }
   }
-  return DEFAULT_PDF_LOGO_DATA_URL;
+  return normalizePdfImageDataUrl(DEFAULT_PDF_LOGO_DATA_URL, { kind: 'logo' });
+}
+
+async function normalizePdfImageDataUrl(dataUrl, { kind = 'generic' } = {}) {
+  if (!dataUrl) {
+    return '';
+  }
+
+  try {
+    const image = await loadImageElement(dataUrl);
+    const { width, height } = normalizeImageDimensions(image.naturalWidth || image.width, image.naturalHeight || image.height);
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', { alpha: kind !== 'logo' });
+    if (!context) {
+      return dataUrl;
+    }
+
+    if (kind === 'logo') {
+      context.fillStyle = '#FFFFFF';
+      context.fillRect(0, 0, width, height);
+    } else {
+      context.clearRect(0, 0, width, height);
+    }
+
+    context.drawImage(image, 0, 0, width, height);
+    return kind === 'logo'
+      ? canvas.toDataURL('image/jpeg', 0.96)
+      : canvas.toDataURL('image/png');
+  } catch {
+    return dataUrl;
+  }
+}
+
+function normalizeImageDimensions(width, height) {
+  const safeWidth = Math.max(1, Math.round(width || 1));
+  const safeHeight = Math.max(1, Math.round(height || 1));
+  const maxDimension = 1400;
+  const ratio = Math.min(1, maxDimension / Math.max(safeWidth, safeHeight));
+  return {
+    width: Math.max(1, Math.round(safeWidth * ratio)),
+    height: Math.max(1, Math.round(safeHeight * ratio))
+  };
+}
+
+function loadImageElement(dataUrl) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Image load failed'));
+    image.src = dataUrl;
+  });
 }
 
 function arrayBufferToBinaryString(buffer) {
