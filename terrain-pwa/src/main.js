@@ -51,8 +51,6 @@ const state = {
   signatureTarget: null
 };
 
-const hideGeneratedDocuments = document.body.dataset.hideGeneratedDocuments === 'true';
-
 const elements = {};
 const catalogIndex = {
   byReference: new Map(),
@@ -92,10 +90,7 @@ async function init() {
   renderCompany();
   renderCatalog();
   renderInstallGuide();
-  renderGeneratedDocumentsVisibility();
-  if (!hideGeneratedDocuments) {
-    await refreshDocuments();
-  }
+  await refreshDocuments();
   renderSyncState();
   elements.terrainClientIdText.textContent = getOrCreateTerrainClientId();
   await uploader.start();
@@ -174,20 +169,12 @@ function cacheDom() {
     capturePhotoButton: document.querySelector('#capturePhotoButton'),
     testLinkButton: document.querySelector('#testLinkButton'),
     photoCaptureInput: document.querySelector('#photoCaptureInput'),
-    generatedDocumentsSection: document.querySelector('#generatedDocumentsSection'),
     documentSummary: document.querySelector('#documentSummary'),
     generatedDocuments: document.querySelector('#generatedDocuments'),
     clearDocumentsButton: document.querySelector('#clearDocumentsButton'),
     autoNumberButton: document.querySelector('#autoNumberButton'),
     todayButton: document.querySelector('#todayButton')
   });
-}
-
-function renderGeneratedDocumentsVisibility() {
-  if (!elements.generatedDocumentsSection) {
-    return;
-  }
-  elements.generatedDocumentsSection.classList.toggle('hidden', hideGeneratedDocuments);
 }
 
 function wireEvents() {
@@ -453,14 +440,12 @@ function wireEvents() {
     }
   });
 
-  if (elements.clearDocumentsButton && !hideGeneratedDocuments) {
-    elements.clearDocumentsButton.addEventListener('click', async () => {
-      await clearGeneratedDocuments();
-      state.documents = [];
-      renderDocuments();
-      showToast('Historique local des documents nettoyé.');
-    });
-  }
+  elements.clearDocumentsButton.addEventListener('click', async () => {
+    await clearGeneratedDocuments();
+    state.documents = [];
+    renderDocuments();
+    showToast('Historique local des documents nettoyé.');
+  });
 }
 
 function renderCompany() {
@@ -779,15 +764,12 @@ async function persistGeneratedDocument(document) {
 }
 
 async function refreshDocuments() {
-  if (hideGeneratedDocuments) {
-    return;
-  }
   state.documents = await getGeneratedDocuments();
   renderDocuments();
 }
 
 function renderDocuments() {
-  if (hideGeneratedDocuments || !elements.documentSummary || !elements.generatedDocuments) {
+  if (!elements.documentSummary || !elements.generatedDocuments) {
     return;
   }
   const total = state.documents.length;
